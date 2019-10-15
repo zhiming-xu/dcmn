@@ -1,6 +1,12 @@
 # visual studio code related
 .vscode/
 
+# data
+data/
+
+# test files
+test*.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

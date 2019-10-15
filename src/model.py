@@ -8,11 +8,15 @@ import logging
 np.random.seed(9102)
 mx.random.seed(8064)
 
+logger = logging.Logger(__name__)
+logger.setLevel(logging.DEBUG)
 
 try:
     nd.ones(10, ctx=mx.gpu())
+    ctx = mx.gpu()
 except Exception as e:
-    
+    logger.warning('No GPU device found with exception {}. Will use CPU instead'.format(e))
+    ctx = mx.cpu()
 
 class AttentionWeightMatrix(nn.Block):
     '''
@@ -21,14 +25,14 @@ class AttentionWeightMatrix(nn.Block):
     def __init__(self, emb_size, **kwargs):
         super(AttentionWeightMatrix, self).__init__(**kwargs)
         with self.name_scope():
-            self.W = nd.random.normal(shape=(emb_size, emb_size), ctx=mx.gpu())
+            self.W = nd.random.normal(shape=(emb_size, emb_size), ctx=ctx)
             # emb_a: batch_size*seq_len_a*emb_size, emb_b: batch_size*seq_len_b*emb_size
             # self.W: emb_size*emb_size
             # After the evaluation, the shape is batch_size*seq_len_a*emb_size_b
-            self.attmat = nn.Lambda(lambda emb_a, emb_b: nd.softmax(
+            self.attmat = nn.Lambda(lambda *emb: nd.softmax(
                 nd.batch_dot(
-                    nd.dot(emb_a, self.W),
-                    nd.transpose(emb_b, axes=(0, 2, 1))
+                    nd.dot(emb[0], self.W),
+                    nd.transpose(emb[1], axes=(0, 2, 1))
                 ), axis=1)
             )
 
@@ -43,16 +47,14 @@ class SoftAlignment(nn.Block):
         super(SoftAlignment, self).__init__(**kwargs)
         with self.name_scope():
             # the parameter matrix W
-            self.W = nd.random.normal(shape=(emb_size, emb_size), ctx=mx.gpu())
-            self.softalign = nn.Sequential(
-                nn.Lambda(lambda G, H: nd.dot(
-                    G, nd.transpose(H, axes=(1, 0, 2)))
-                ),
-                nn.Lambda(lambda E: nd.relu(nd.dot(E, self.W)))
-            )
+            self.W = nd.random.normal(shape=(emb_size, emb_size), ctx=ctx)
+            self.cal_E = nn.Lambda(lambda *args: nd.dot(
+                        args[0], nd.transpose(args[1], axes=(1, 0, 2)))
+                    )
+            self.cal_ReLU = nn.Lambda(lambda E: nd.relu(nd.dot(E, self.W)))
 
     def forward(self, G, H):
-        return self.softalign(G, H) 
+        return self.cal_ReLU(self.cal_E(G, H))
 
 class BidirMatchEmb(nn.Block):
     '''
@@ -86,16 +88,16 @@ class GatedBlock(nn.Block):
     def __init__(self, emb_size, **kwargs):
         super(GatedBlock, self).__init__(**kwargs)
         with self.name_scope():
-            self.W_a = nd.random.normal(shape=(emb_size, emb_size), ctx=mx.gpu())
-            self.W_b = nd.random.normal(shape=(emb_size, emb_size), ctx=mx.gpu())
-            self.b = nd.random.normal(shape=(emb_size, 1), ctx=mx.gpu())
+            self.W_a = nd.random.normal(shape=(emb_size, emb_size), ctx=ctx)
+            self.W_b = nd.random.normal(shape=(emb_size, emb_size), ctx=ctx)
+            self.b = nd.random.normal(shape=emb_size, ctx=ctx)
             self.maxpooling = nn.GlobalMaxPool1D(layout='NWC')
             self.gate_rate = nn.Lambda(
-                lambda M_a, M_b: nd.sigmoid(nd.dot(M_a, self.W_a) + \
-                                 nd.dot(M_b, self.W_b) + self.b)
+                lambda *args: nd.sigmoid(nd.dot(args[0], self.W_a) + \
+                                         nd.dot(args[1], self.W_b) + self.b)
             )
             self.gate_output = nn.Lambda(
-                lambda M_a, M_b, g: g * M_a + (1 - g) * M_b
+                lambda *args: args[2] * args[0] + (1 - args[2]) * args[1]
             )
 
     def forward(self, S_a, S_b):
@@ -108,6 +110,23 @@ class MatchPair(nn.Block):
     '''
     use the blocks above to complete the model
     '''
-    def __init__(self, emb_size):
-        pass
+    def __init__(self, emb_size, **kwargs):
+        super(MatchPair, self).__init__(**kwargs)
+        self.birdirmatchbed = BidirMatchEmb(emb_size)
+        self.gatedblock = GatedBlock(emb_size)
+
+    def forward(self, emb_a, emb_b):
+        S_a, S_b = self.birdirmatchbed(emb_a, emb_b)
+        return self.gatedblock(S_a, S_b)
+
+class ObjFunc(nn.Block):
+    '''
+    implement objective function
+    '''
+    def __init__(self, emb_size, **kwargs):
+        self.V = nd.random.normal(shape=emb_size, ctx=ctx)
+
+    def forward(self, C):
+        
+
 
