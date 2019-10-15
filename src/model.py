@@ -32,35 +32,38 @@ class SoftAlignment(nn.Block):
     '''
     implement E_a/b = G_ab emb_a/(G_ab)^T emb_b
     '''
-    def __init__(self, emb_size, axes, **kwargs):
+    def __init__(self, emb_size, **kwargs):
         super(SoftAlignment, self).__init__(**kwargs)
-        self.axes = axes
         with self.name_scope():
+            # the parameter matrix W
+            self.W = nd.random.normal(shape=(emb_size, emb_size))
             self.softalign = nn.Sequential(
-                nn.Lambda(lambda g, emb: nd.dot(
-                    g, nd.transpose(emb, axes=self.axes))
+                nn.Lambda(lambda G, H: nd.dot(
+                    G, nd.transpose(H, axes=(1, 0, 2)))
                 ),
-                nn.Dense(emb_size, use_bias=False)
+                nn.Lambda(lambda E: nd.relu(nd.dot(E, self.W)))
             )
+
+    def forward(self, G, H):
+        return self.softalign(G, H) 
 
 class BidirMatchEmb(nn.Block):
     '''
     Core model component
     '''
-    def __init__(self, vocab_size, embsize, nhidden, nlayers, dropout, **kwargs):
+    def __init__(self, vocab_size, emb_size, nhidden, nlayers, dropout, **kwargs):
         '''
         init function, we will leave the bert embedding for now, suppose embeddings
         are already available
         '''
         super(BidirMatchEmb, self).__init__(**kwargs)
         with self.name_scope():
-            self.dropout = dropout
-            self.embedding_layer = BertEmbedding # FIXME: this is incomplete
-            self.attweightmat = AttentionWeightMatrix(embsize)
-            self.softalign_a = nn.Lambda(lambda g_ab, emb_a: nd.dot(
-                g_ab, nd.transpose(emb_a, axes=(1, 2, 0))
-            ))
-            self
+            # self.embedding_layer = BertEmbedding # FIXME: this is incomplete
+            self.attweightmat = AttentionWeightMatrix(emb_size)
+            self.softalign = SoftAlignment(emb_size)
+            self.output = nn.Sequential(
+                
+            )
 
     def forward(self, emb_a, emb_b):
         raise NotImplementedError
