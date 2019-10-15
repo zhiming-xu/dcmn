@@ -1,8 +1,9 @@
 # !/usr/bin/env python3
 import json, logging
 import mxnet as mx
-from mxnet import nd
+from mxnet import nd, gluon
 import multiprocessing as mp
+import gluonnlp as nlp
 from collections import defaultdict
 from bert.embedding import BertEmbedding
 from ast import literal_eval
@@ -55,7 +56,36 @@ def to_dataset(sentences, labels, ctx=mx.gpu(), batch_size=32, max_seq_length=20
         tokens_embs = bertembedding.embedding(sts)
         embs.append([nd.array(token_emb[1]) for token_emb in tokens_embs])
     
-    dataset = [[obs1, obs2, hyp1, hyp2, label] for obs1, obs2, hyp1, hyp2, label in \
-               zip(*embs, labels)]
+    dataset = [list(obs_hyp_label) for obs_hyp_label in zip(*embs, labels)]
     return dataset
 
+def get_length(dataset):
+    '''
+    lengths used for batch sampler, we will use the first field of each row
+    for now, i.e., obs1
+    '''
+    return [row[0].shape[0] for row in dataset]
+
+def to_dataloader(dataset, batch_size=32, num_buckets=10, bucket_ratio=.5):
+    '''
+    this function will sample the dataset to dataloader
+    '''
+    pads = [nlp.data.batchify.Pad(axis=0, pad_val=0) for _ in range(len(dataset[0])-1)]
+    batchify_fn = nlp.data.batchify.Tuple(
+        *pads,                      # for observations and hypotheses
+        nlp.data.batchify.Stack()   # for labels
+    )
+    lengths = get_length(dataset)
+
+    logger.info('Build batch_sampler')
+    batch_sampler = nlp.data.sampler.FixedBucketSampler(
+        lengths=lengths, batch_size=batch_size, num_buckets=num_buckets,
+        ratio=bucket_ratio, shuffle=True
+    )
+    print(batch_sampler.stats())
+
+    dataloader = gluon.data.DataLoader(
+        dataset, batch_sampler=batch_sampler, batchify_fn=batchify_fn
+    )
+    
+    return dataloader
