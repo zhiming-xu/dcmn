@@ -1,3 +1,4 @@
+# !/usr/bin/env python3
 import mxnet as mx, gluonnlp as nlp
 from mxnet.gluon import nn, rnn
 from mxnet import nd, autograd, gluon
