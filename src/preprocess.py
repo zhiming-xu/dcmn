@@ -1,6 +1,7 @@
 # !/usr/bin/env python3
 import json, logging
 import mxnet as mx
+from mxnet import nd
 import multiprocessing as mp
 from collections import defaultdict
 from bert.embedding import BertEmbedding
@@ -37,4 +38,9 @@ def to_dataloader(sentences, ctx=mx.gpu(), batch_size=32, max_seq_length=20):
     '''
     bertembedding = BertEmbedding(ctx=ctx, batch_size=batch_size, max_seq_length=max_seq_length)
     logger.info('Construct bert embedding for these fields')
-    return [bertembedding.data_loader(sentence) for sentence in sentences]
+    for sts in sentences:
+        tokens_embs = bertembedding.embedding(sts)
+        embs = [nd.array(token_emb[1]) for token_emb in tokens_embs]
+
+
+
