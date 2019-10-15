@@ -26,7 +26,7 @@ class AttentionWeightMatrix(nn.Block):
     def __init__(self, emb_size, **kwargs):
         super(AttentionWeightMatrix, self).__init__(**kwargs)
         with self.name_scope():
-            self.W = nd.normal(shape=(emb_size, emb_size), ctx=ctx)
+            self.W = nd.normal(scale=.1, shape=(emb_size, emb_size), ctx=ctx)
             # emb_a: batch_size*seq_len_a*emb_size, emb_b: batch_size*seq_len_b*emb_size
             # self.W: emb_size*emb_size
             # After the evaluation, the shape is batch_size*seq_len_a*emb_size_b
@@ -48,7 +48,7 @@ class SoftAlignment(nn.Block):
         super(SoftAlignment, self).__init__(**kwargs)
         with self.name_scope():
             # the parameter matrix W
-            self.W = nd.normal(shape=(emb_size, emb_size), ctx=ctx)
+            self.W = nd.normal(scale=.1, shape=(emb_size, emb_size), ctx=ctx)
             self.cal_E = nn.Lambda(lambda *args: nd.dot(
                         args[0], nd.transpose(args[1], axes=(1, 0, 2)))
                     )
@@ -89,9 +89,9 @@ class GatedBlock(nn.Block):
     def __init__(self, emb_size, **kwargs):
         super(GatedBlock, self).__init__(**kwargs)
         with self.name_scope():
-            self.W_a = nd.normal(shape=(emb_size, emb_size), ctx=ctx)
-            self.W_b = nd.normal(shape=(emb_size, emb_size), ctx=ctx)
-            self.b = nd.normal(shape=emb_size, ctx=ctx)
+            self.W_a = nd.normal(scale=.1, shape=(emb_size, emb_size), ctx=ctx)
+            self.W_b = nd.normal(scale=.1, shape=(emb_size, emb_size), ctx=ctx)
+            self.b = nd.normal(scale=.1, shape=emb_size, ctx=ctx)
             self.maxpooling = nn.GlobalMaxPool1D(layout='NWC')
             self.gate_rate = nn.Lambda(
                 lambda *args: nd.sigmoid(nd.dot(args[0], self.W_a) + \
@@ -151,15 +151,15 @@ class ObjFunc(nn.Block):
     def __init__(self, emb_size, num_matches=3, **kwargs):
         super(ObjFunc, self).__init__(**kwargs)
         with self.name_scope():
-            self.V = nd.normal(shape=num_matches*emb_size, ctx=ctx)
+            self.V = nd.normal(scale=.1, shape=num_matches*emb_size, ctx=ctx)
             self.expmul = nn.Lambda(
-                lambda C: nd.dot(C.transpose(axes=(0, 2, 1)), self.V)
+                lambda C: nd.exp(nd.dot(C.transpose(axes=(0, 2, 1)), self.V))
             )
 
     def forward(self, C):
         # input value is of shape (batch_size, num_matches*emb_size, num_candidates),
         # with num_matches=3, num_candidates=2 in our case
-        exp_C = nd.exp(self.expmul(C))
+        exp_C = self.expmul(C)
         # L(A_i | P, Q) = -log(exp(V^T C_i) / exp(V^T C))
         L = -nd.log(exp_C / nd.sum(exp_C, axis=-1, keepdims=True))
         return L
@@ -173,19 +173,19 @@ class DMCN(nn.Block):
         with self.name_scope():
             self.embedding = BertEmbedding(ctx=ctx, batch_size=32)
             self.matchthreepairs = [MatchThreePairs(emb_size) for _ in range(num_candidates)]
+            for block in self.matchthreepairs:
+                self.register_child(block)
             self.objfunc = ObjFunc(emb_size)
 
-    def forward(self, *sentences):
-        # FIXME: we should not use bert in model, since the dataloader it produces can't be directly
-        # use in `model`. `model` should take a batch, an element of a dataloader
-        dataloaders = [self.embedding.data_loader(sentence) for sentence in sentences]
-        dloader_ob1, dloader_ob2 = dataloaders[:2]
+    def forward(self, inputs):
+        '''
+        inputs: obs1, obs2, hyp1, hyp2, (could be more), label
+        '''
         # each element of this list is a matching matrix of shape (batch_size, num_matches*emb_size),
         # num_matches=3 in our case
-        matchmats = [self.matchthreepairs[i](dloader_ob1, dloader_ob2, dataloaders[i+2]) \
-                     for i in range(len(dataloaders)-2)]
+        matchmats = [self.matchthreepairs[i](inputs[0], inputs[1], inputs[i+2]) \
+                     for i in range(len(inputs)-3)]
         # C in original paper, of shape (batch_size, num_matches*emb_size, num_candidates)
         final_representation = nd.concat(*matchmats, dim=-1)
         return self.objfunc(final_representation)
         
-
