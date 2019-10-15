@@ -1,49 +1,18 @@
 # !/usr/bin/env python3
-import json, logging
+import logging
 import mxnet as mx
 from mxnet import nd, gluon
 import multiprocessing as mp
 import gluonnlp as nlp
+import numpy as np
 from collections import defaultdict
 from bert.embedding import BertEmbedding
-from ast import literal_eval
+from util import load_labels, load_sentences
 
 logger = logging.Logger(__name__)
 logger.setLevel(logging.WARNING)
 
-def load_jsonl(filepath):
-    '''
-    this function will load a *.jsonl file by the name of filepath,
-    note: each line of this file is a dict {}, not standard json
-    '''
-    logging.info('Load jsonl file from {}'.format(filepath))
-    with open(filepath, 'r') as f:
-        data = [json.loads(line) for line in f]
-
-    return data
-
-def load_sentences(filepath, keys=['obs1', 'obs2', 'hyp1', 'hyp2']):
-    '''
-    this function will use load_jsonl to load the jsonl file, extract
-    the observations and hypotheses, return: key -> list of strings
-    '''
-    raw_data = load_jsonl(filepath)
-    ret = defaultdict(list)
-    logger.info('Build the dictionary for each kind of sentences')
-    for entry in raw_data:
-        for key in keys:
-            ret[key].append(entry[key])
-    return list(ret.values())
-
-def load_labels(filepath):
-    '''
-    this function will load the given label from `filepath`
-    '''
-    with open(filepath, 'r') as f:
-        ret = [0 if literal_eval(line)==1 else 1 for line in f]
-    return ret
-
-def to_dataset(sentences, labels, ctx=mx.gpu(), batch_size=32, max_seq_length=20):
+def to_dataset(sentences, labels, ctx=mx.gpu(), batch_size=64, max_seq_length=25):
     '''
     this function will use BertEmbedding to get each fields' embeddings
     and load the given labels, put them together into a dataset
@@ -54,7 +23,7 @@ def to_dataset(sentences, labels, ctx=mx.gpu(), batch_size=32, max_seq_length=20
     embs = []
     for sts in sentences:
         tokens_embs = bertembedding.embedding(sts)
-        embs.append([nd.array(token_emb[1]) for token_emb in tokens_embs])
+        embs.append([np.asarray(token_emb[1]) for token_emb in tokens_embs])
     
     dataset = [list(obs_hyp_label) for obs_hyp_label in zip(*embs, labels)]
     return dataset
@@ -66,7 +35,7 @@ def get_length(dataset):
     '''
     return [row[0].shape[0] for row in dataset]
 
-def to_dataloader(dataset, batch_size=32, num_buckets=10, bucket_ratio=.5):
+def to_dataloader(dataset, batch_size=64, num_buckets=10, bucket_ratio=.5):
     '''
     this function will sample the dataset to dataloader
     '''
@@ -88,4 +57,21 @@ def to_dataloader(dataset, batch_size=32, num_buckets=10, bucket_ratio=.5):
         dataset, batch_sampler=batch_sampler, batchify_fn=batchify_fn
     )
     
+    return dataloader
+
+def get_dataloader(sts_filepath, label_filepath, keys=['obs1', 'obs2', 'hyp1', 'hyp2'], \
+                   batch_size=64, num_buckets=10, bucket_ratio=.5, \
+                   ctx=mx.gpu(), max_seq_length=25):
+    '''
+    this function will use the helpers above, take sentence file path,
+    label file path, and batch_size, num_buckets, bucket_ratio, to
+    get the dataloader for model to use
+    '''
+    sentences = load_sentences(sts_filepath, keys=keys)
+    labels = load_labels(label_filepath)
+    dataset = to_dataset(sentences, labels, ctx=ctx, batch_size=batch_size, \
+                         max_seq_length=max_seq_length)
+
+    dataloader = to_dataloader(dataset=dataset, batch_size=batch_size, \
+                               num_buckets=num_buckets, bucket_ratio=bucket_ratio)
     return dataloader
