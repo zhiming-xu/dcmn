@@ -175,6 +175,8 @@ class DMCN(nn.Block):
             self.objfunc = ObjFunc(emb_size)
 
     def forward(self, *sentences):
+        # FIXME: we should not use bert in model, since the dataloader it produces can't be directly
+        # use in `model`. `model` should take a batch, an element of a dataloader
         dataloaders = [self.embedding.data_loader(sentence) for sentence in sentences]
         dloader_ob1, dloader_ob2 = dataloaders[:2]
         # each element of this list is a matching matrix of shape (batch_size, num_matches*emb_size),
