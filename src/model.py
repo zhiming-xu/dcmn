@@ -3,18 +3,25 @@ from mxnet.gluon import nn, rnn
 from mxnet import nd, autograd, gluon
 from bert.embedding import BertEmbedding
 import pandas as pd, numpy as np
+import logging
 
 np.random.seed(9102)
 mx.random.seed(8064)
+
+
+try:
+    nd.ones(10, ctx=mx.gpu())
+except Exception as e:
+    
 
 class AttentionWeightMatrix(nn.Block):
     '''
     implement G^qa = softmax(H^p W H^aT)
     '''
-    def __init__(self, embsize, **kwargs):
+    def __init__(self, emb_size, **kwargs):
         super(AttentionWeightMatrix, self).__init__(**kwargs)
         with self.name_scope():
-            self.W = nd.normal(shape=(embsize, embsize))
+            self.W = nd.random.normal(shape=(emb_size, emb_size), ctx=mx.gpu())
             # emb_a: batch_size*seq_len_a*emb_size, emb_b: batch_size*seq_len_b*emb_size
             # self.W: emb_size*emb_size
             # After the evaluation, the shape is batch_size*seq_len_a*emb_size_b
@@ -36,7 +43,7 @@ class SoftAlignment(nn.Block):
         super(SoftAlignment, self).__init__(**kwargs)
         with self.name_scope():
             # the parameter matrix W
-            self.W = nd.random.normal(shape=(emb_size, emb_size))
+            self.W = nd.random.normal(shape=(emb_size, emb_size), ctx=mx.gpu())
             self.softalign = nn.Sequential(
                 nn.Lambda(lambda G, H: nd.dot(
                     G, nd.transpose(H, axes=(1, 0, 2)))
@@ -79,9 +86,9 @@ class GatedBlock(nn.Block):
     def __init__(self, emb_size, **kwargs):
         super(GatedBlock, self).__init__(**kwargs)
         with self.name_scope():
-            self.W_a = nd.random.normal(shape=(emb_size, emb_size))
-            self.W_b = nd.random.normal(shape=(emb_size, emb_size))
-            self.b = nd.random.normal(shape=(emb_size, 1))
+            self.W_a = nd.random.normal(shape=(emb_size, emb_size), ctx=mx.gpu())
+            self.W_b = nd.random.normal(shape=(emb_size, emb_size), ctx=mx.gpu())
+            self.b = nd.random.normal(shape=(emb_size, 1), ctx=mx.gpu())
             self.maxpooling = nn.GlobalMaxPool1D(layout='NWC')
             self.gate_rate = nn.Lambda(
                 lambda M_a, M_b: nd.sigmoid(nd.dot(M_a, self.W_a) + \
@@ -96,4 +103,11 @@ class GatedBlock(nn.Block):
         M_b = self.maxpooling(S_b).flatten(dim=1)
         gr = self.gate_rate(M_a, M_b)
         return self.gate_output(M_a, M_b, gr)
+
+class MatchPair(nn.Block):
+    '''
+    use the blocks above to complete the model
+    '''
+    def __init__(self, emb_size):
+        pass
 
