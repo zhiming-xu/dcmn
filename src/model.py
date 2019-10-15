@@ -179,8 +179,8 @@ class DMCN(nn.Block):
         dloader_ob1, dloader_ob2 = dataloaders[:2]
         # each element of this list is a matching matrix of shape (batch_size, num_matches*emb_size),
         # num_matches=3 in our case
-        matchmats = [self.matchthreepairs(dloader_ob1, dloader_ob2, dloader_h) \
-                     for dloader_h in dataloaders[2:]]
+        matchmats = [self.matchthreepairs[i](dloader_ob1, dloader_ob2, dataloaders[i+2]) \
+                     for i in range(len(dataloaders)-2)]
         # C in original paper, of shape (batch_size, num_matches*emb_size, num_candidates)
         final_representation = nd.concat(*matchmats, dim=-1)
         return self.objfunc(final_representation)
