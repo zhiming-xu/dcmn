@@ -18,7 +18,7 @@ class AttentionWeightMatrix(nn.Block):
             # emb_a: batch_size*seq_len_a*emb_size, emb_b: batch_size*seq_len_b*emb_size
             # self.W: emb_size*emb_size
             # After the evaluation, the shape is batch_size*seq_len_a*emb_size_b
-            self.op = nn.Lambda(lambda emb_a, emb_b: nd.softmax(
+            self.attmat = nn.Lambda(lambda emb_a, emb_b: nd.softmax(
                 nd.batch_dot(
                     nd.dot(emb_a, self.W),
                     nd.transpose(emb_b, axes=(0, 2, 1))
@@ -26,11 +26,11 @@ class AttentionWeightMatrix(nn.Block):
             )
 
     def forward(self, emb_a, emb_b):
-        return self.op(emb_a, emb_b)
+        return self.attmat(emb_a, emb_b)
         
 class SoftAlignment(nn.Block):
     '''
-    implement E_a/b = G_ab emb_a/(G_ab)^T emb_b
+    implement S_a/b = RELU(G_ab emb_a/(G_ab)^T emb_b, W_a/b)
     '''
     def __init__(self, emb_size, **kwargs):
         super(SoftAlignment, self).__init__(**kwargs)
@@ -49,9 +49,9 @@ class SoftAlignment(nn.Block):
 
 class BidirMatchEmb(nn.Block):
     '''
-    Core model component
+    for bidirectional matching representation
     '''
-    def __init__(self, vocab_size, emb_size, nhidden, nlayers, dropout, **kwargs):
+    def __init__(self, emb_size, **kwargs):
         '''
         init function, we will leave the bert embedding for now, suppose embeddings
         are already available
@@ -60,10 +60,40 @@ class BidirMatchEmb(nn.Block):
         with self.name_scope():
             # self.embedding_layer = BertEmbedding # FIXME: this is incomplete
             self.attweightmat = AttentionWeightMatrix(emb_size)
-            self.softalign = SoftAlignment(emb_size)
-            self.output = nn.Sequential(
-                
-            )
+            self.softalign_a = SoftAlignment(emb_size)
+            self.softalign_b = SoftAlignment(emb_size)
 
     def forward(self, emb_a, emb_b):
-        raise NotImplementedError
+        # G = softmax(emb_a W emb_b), (batch_size, len_a, len_b)
+        G = self.attweightmat(emb_a, emb_b)
+        # S_a = ReLU(G emb_b W_a), (batch_size, len_a, emb_size)
+        S_a = self.softalign_a(G, emb_b)
+        # S_b = ReLU(G^T -> batch_size*len_b*len_a, emb_a, W_b), (batch_size, len_b, emb_size)
+        S_b = self.softalign_b(G.transpose(axes=(0, 2, 1)), emb_a)
+        return S_a, S_b
+
+class GatedBlock(nn.Block):
+    '''
+    implement gated mechanism, input is S_a/S_b
+    '''
+    def __init__(self, emb_size, **kwargs):
+        super(GatedBlock, self).__init__(**kwargs)
+        with self.name_scope():
+            self.W_a = nd.random.normal(shape=(emb_size, emb_size))
+            self.W_b = nd.random.normal(shape=(emb_size, emb_size))
+            self.b = nd.random.normal(shape=(emb_size, 1))
+            self.maxpooling = nn.GlobalMaxPool1D(layout='NWC')
+            self.gate_rate = nn.Lambda(
+                lambda M_a, M_b: nd.sigmoid(nd.dot(M_a, self.W_a) + \
+                                 nd.dot(M_b, self.W_b) + self.b)
+            )
+            self.gate_output = nn.Lambda(
+                lambda M_a, M_b, g: g * M_a + (1 - g) * M_b
+            )
+
+    def forward(self, S_a, S_b):
+        M_a = self.maxpooling(S_a).flatten(dim=1)
+        M_b = self.maxpooling(S_b).flatten(dim=1)
+        gr = self.gate_rate(M_a, M_b)
+        return self.gate_output(M_a, M_b, gr)
+
