@@ -112,11 +112,11 @@ class MatchOnePair(nn.Block):
     def __init__(self, emb_size, **kwargs):
         super(MatchOnePair, self).__init__(**kwargs)
         with self.name_scope():
-            self.birdirmatchbed = BidirMatchEmb(emb_size)
+            self.bidirmatchemb = BidirMatchEmb(emb_size)
             self.gatedblock = GatedBlock(emb_size)
 
     def forward(self, emb_a, emb_b):
-        S_a, S_b = self.birdirmatchbed(emb_a, emb_b)
+        S_a, S_b = self.bidirmatchemb(emb_a, emb_b)
         return self.gatedblock(S_a, S_b)
 
 class MatchThreePairs(nn.Block):
