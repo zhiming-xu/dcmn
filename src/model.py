@@ -26,7 +26,8 @@ class AttentionWeightMatrix(nn.Block):
     def __init__(self, emb_size, **kwargs):
         super(AttentionWeightMatrix, self).__init__(**kwargs)
         with self.name_scope():
-            self.W = nd.normal(scale=.1, shape=(emb_size, emb_size), ctx=ctx)
+            # self.W = nd.normal(scale=.1, shape=(emb_size, emb_size), ctx=ctx)
+            self.W = gluon.Parameter('attention_weight_matrix_W', shape=(emb_size, emb_size))
             # emb_a: batch_size*seq_len_a*emb_size, emb_b: batch_size*seq_len_b*emb_size
             # self.W: emb_size*emb_size
             # After the evaluation, the shape is batch_size*seq_len_a*emb_size_b
@@ -168,10 +169,10 @@ class DMCN(nn.Block):
     '''
     wrapper of this whole model
     '''
-    def __init__(self, emb_size, num_candidates=2, **kwargs):
+    def __init__(self, emb_size=768, num_candidates=2, **kwargs):
         super(DMCN, self).__init__(**kwargs)
         with self.name_scope():
-            self.embedding = BertEmbedding(ctx=ctx, batch_size=32)
+            self.embedding = BertEmbedding(ctx=ctx)
             self.matchthreepairs = [MatchThreePairs(emb_size) for _ in range(num_candidates)]
             for block in self.matchthreepairs:
                 self.register_child(block)

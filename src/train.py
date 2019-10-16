@@ -1,12 +1,13 @@
 # !/usr/bin/env python3
+# helpers for training the model
 import mxnet as mx
-from mxnet import gluon, autograd, nd
+from mxnet import autograd, nd
 from sklearn.metrics import accuracy_score, f1_score
 import logging, time
 import numpy as np
 
 logger = logging.Logger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 logger.info('This module will try to use GPU as default. If it is not available, will \
             switch to CPU')
@@ -72,8 +73,8 @@ def one_epoch(dataloader, model, loss_func, trainer, ctx, is_train, epoch, class
 
         # check the result of traing phase
         if is_train and n_batch % 200 == 0:
-            print('epoch %d, batch %d, batch_train_loss %.4f, batch_train_acc %.3f' %
-                  (epoch, n_batch, batch_loss, accuracy_score(batch_true, batch_pred)))
+            logger.info('epoch %d, batch %d, batch_train_loss %.4f, batch_train_acc %.3f' %
+                       (epoch, n_batch, batch_loss, accuracy_score(batch_true, batch_pred)))
 
     # metric
     F1 = f1_score(np.array(total_true), np.array(total_pred), average='binary')
@@ -81,19 +82,21 @@ def one_epoch(dataloader, model, loss_func, trainer, ctx, is_train, epoch, class
     loss_val /= n_batch
 
     if is_train:
-        print('epoch %d, learning_rate %.5f \n\t train_loss %.4f, acc_train %.3f, F1_train %.3f, ' %
-              (epoch, trainer.learning_rate, loss_val, acc, F1))
+        logger.info('epoch %d, learning_rate %.5f \n\t train_loss %.4f, acc_train %.3f, F1_train %.3f, ' %
+                   (epoch, trainer.learning_rate, loss_val, acc, F1))
         # train_curve.append((acc, F1))
         # declay lr
         if epoch % 2 == 0:
             trainer.set_learning_rate(trainer.learning_rate * 0.9)
     else:
-        print('\t valid_loss %.4f, acc_valid %.3f, F1_valid %.3f, ' % (loss_val, acc, F1))
+        logger.info('\t valid_loss %.4f, acc_valid %.3f, F1_valid %.3f, ' % (loss_val, acc, F1))
         # valid_curve.append((acc, F1))
 
-def train_valid(dataloader_train, dataloader_dev, model, loss_func, trainer, \
+def train_valid(dataloader_train, dataloader_test, model, loss_func, trainer, \
                 ctx, num_epoch, class_weight=None, loss_name='sce'):
-
+    '''
+    wrapper for training and "test" the model
+    '''
     for epoch in range(1, num_epoch+1):
         start = time.time()
         # train
@@ -102,7 +105,7 @@ def train_valid(dataloader_train, dataloader_dev, model, loss_func, trainer, \
 
         # valid
         is_train = False
-        one_epoch(dataloader_dev, model, loss_func, trainer, ctx, is_train, epoch, class_weight, loss_name)
+        one_epoch(dataloader_test, model, loss_func, trainer, ctx, is_train, epoch, class_weight, loss_name)
         end = time.time()
-        print('time %.2f sec' % (end-start))
-        print("*"*100)
+        logger.info('time %.2f sec' % (end-start))
+        logger.info("*"*100)
