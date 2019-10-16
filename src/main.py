@@ -23,7 +23,7 @@ if __name__ == '__main__':
     # dataloader_train = get_dataloader(args.train_sentences, args.train_labels)
     dataloader_test = get_dataloader(args.test_sentences, args.test_labels)
     model = DMCN(768)
-    model.initialize(init=init.Uniform(scale=1), ctx=ctx)
+    model.initialize(init=init.Uniform(scale=.01), ctx=ctx)
     loss_func = loss = gluon.loss.SoftmaxCrossEntropyLoss()
     lr, clip = .001, 2.5
     trainer = gluon.Trainer(model.collect_params(), 'adam', {'learning_rate': lr, 'clip_gradient': clip})

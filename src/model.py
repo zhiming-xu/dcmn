@@ -33,9 +33,11 @@ class AttentionWeightMatrix(nn.Block):
         # emb_a: batch_size*seq_len_a*emb_size, emb_b: batch_size*seq_len_b*emb_size
         # self.W: emb_size*emb_size
         # After the evaluation, the shape is batch_size*seq_len_a*emb_size_b
-        return nd.softmax(nd.batch_dot(nd.dot(emb_a, self.W.data()), \
-                                       nd.transpose(emb_b, axes=(0, 2, 1))), axis=1)
-        
+        dot_product = nd.batch_dot(nd.dot(emb_a, self.W.data()), \
+                                   nd.transpose(emb_b, axes=(0, 2, 1)))
+        G_ab = nd.softmax(dot_product, axis=1)
+        return G_ab
+
 class SoftAlignment(nn.Block):
     '''
     implement S_a/b = RELU(G_ab emb_a/(G_ab)^T emb_b, W_a/b)
@@ -50,7 +52,7 @@ class SoftAlignment(nn.Block):
             )
 
     def forward(self, G, emb):
-        E = nd.dot(G, nd.transpose(emb, axes=(1, 0, 2)))
+        E = nd.batch_dot(G, emb)
         relu_EW = nd.relu(nd.dot(E, self.W.data()))
         return relu_EW
 
