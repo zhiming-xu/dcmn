@@ -6,8 +6,9 @@ from sklearn.metrics import accuracy_score, f1_score
 import logging, time
 import numpy as np
 
+logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.Logger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 logger.info('This module will try to use GPU as default. If it is not available, will \
             switch to CPU')
@@ -73,8 +74,8 @@ def one_epoch(dataloader, model, loss_func, trainer, ctx, is_train, epoch, class
 
         # check the result of traing phase
         if is_train and n_batch % 200 == 0:
-            logger.info('epoch %d, batch %d, batch_train_loss %.4f, batch_train_acc %.3f' %
-                       (epoch, n_batch, batch_loss, accuracy_score(batch_true, batch_pred)))
+            print('epoch %d, batch %d, batch_train_loss %.4f, batch_train_acc %.3f' %
+                 (epoch, n_batch, batch_loss, accuracy_score(batch_true, batch_pred)))
 
     # metric
     F1 = f1_score(np.array(total_true), np.array(total_pred), average='binary')
@@ -82,14 +83,14 @@ def one_epoch(dataloader, model, loss_func, trainer, ctx, is_train, epoch, class
     loss_val /= n_batch
 
     if is_train:
-        logger.info('epoch %d, learning_rate %.5f \n\t train_loss %.4f, acc_train %.3f, F1_train %.3f, ' %
-                   (epoch, trainer.learning_rate, loss_val, acc, F1))
+        print('epoch %d, learning_rate %.5f \n\t train_loss %.4f, acc_train %.3f, F1_train %.3f, ' %
+             (epoch, trainer.learning_rate, loss_val, acc, F1))
         # train_curve.append((acc, F1))
         # declay lr
         if epoch % 2 == 0:
             trainer.set_learning_rate(trainer.learning_rate * 0.9)
     else:
-        logger.info('\t valid_loss %.4f, acc_valid %.3f, F1_valid %.3f, ' % (loss_val, acc, F1))
+        print('\t valid_loss %.4f, acc_valid %.3f, F1_valid %.3f, ' % (loss_val, acc, F1))
         # valid_curve.append((acc, F1))
 
 def train_valid(dataloader_train, dataloader_test, model, loss_func, trainer, \
@@ -107,5 +108,5 @@ def train_valid(dataloader_train, dataloader_test, model, loss_func, trainer, \
         is_train = False
         one_epoch(dataloader_test, model, loss_func, trainer, ctx, is_train, epoch, class_weight, loss_name)
         end = time.time()
-        logger.info('time %.2f sec' % (end-start))
-        logger.info("*"*100)
+        print('time %.2f sec' % (end-start))
+        print("*"*100)

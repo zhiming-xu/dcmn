@@ -1,11 +1,7 @@
 # !/usr/bin/env python3
-from preprocess import get_dataloader
-from model import DMCN
-from train import train_valid
-from mxnet import gluon
+import preprocess, model, train
+from mxnet import gluon, init
 import logging, argparse
-from model import ctx
-from mxnet import init
 
 parser = argparse.ArgumentParser(description='Train DMCN model')
 parser.add_argument('--train_sentences', type=str, default='data/train.jsonl', help='Training set \
@@ -16,15 +12,16 @@ parser.add_argument('--test_labels', type=str, default='data/dev-labels', help='
 
 args = parser.parse_args()
 
+logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
-    # dataloader_train = get_dataloader(args.train_sentences, args.train_labels)
-    dataloader_test = get_dataloader(args.test_sentences, args.test_labels)
-    model = DMCN(768)
-    model.initialize(init=init.Uniform(scale=.01), ctx=ctx)
+    dataloader_train = preprocess.get_dataloader(args.train_sentences, args.train_labels, sample_num=10000)
+    dataloader_test = preprocess.get_dataloader(args.test_sentences, args.test_labels)
+    dmcn = model.DMCN(768)
+    dmcn.initialize(init=init.Uniform(scale=.01), ctx=model.ctx)
     loss_func = loss = gluon.loss.SoftmaxCrossEntropyLoss()
     lr, clip = .001, 2.5
-    trainer = gluon.Trainer(model.collect_params(), 'adam', {'learning_rate': lr, 'clip_gradient': clip})
-    train_valid(dataloader_test, dataloader_test, model, loss_func, trainer, num_epoch=3)
+    trainer = gluon.Trainer(dmcn.collect_params(), 'adam', {'learning_rate': lr, 'clip_gradient': clip})
+    train.train_valid(dataloader_train, dataloader_test, dmcn, loss_func, trainer, num_epoch=10)

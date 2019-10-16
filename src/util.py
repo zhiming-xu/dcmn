@@ -3,6 +3,7 @@ import logging, json
 from collections import defaultdict
 from ast import literal_eval
 
+logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.Logger(__name__)
 logger.setLevel(logging.INFO)
 

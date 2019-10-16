@@ -8,6 +8,7 @@ import logging
 np.random.seed(9102)
 mx.random.seed(8064)
 
+logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.Logger(__name__)
 logger.setLevel(logging.DEBUG)
 
