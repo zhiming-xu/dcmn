@@ -19,7 +19,7 @@ logger.setLevel(logging.WARNING)
 if __name__ == '__main__':
     dataloader_train = preprocess.get_dataloader(args.train_sentences, args.train_labels, sample_num=10000)
     dataloader_test = preprocess.get_dataloader(args.test_sentences, args.test_labels)
-    dmcn = model.DMCN(768)
+    dmcn = model.DMCN()
     dmcn.initialize(init=init.Uniform(scale=.01), ctx=model.ctx)
     loss_func = loss = gluon.loss.SoftmaxCrossEntropyLoss()
     lr, clip = .001, 2.5

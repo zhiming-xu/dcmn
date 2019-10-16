@@ -112,30 +112,31 @@ class MatchOnePair(nn.Block):
     '''
     use the blocks above to complete the model
     '''
-    def __init__(self, emb_size, **kwargs):
+    def __init__(self, emb_size, dp_prob=.3, **kwargs):
         super(MatchOnePair, self).__init__(**kwargs)
         with self.name_scope():
             self.bidirmatchemb = BidirMatchEmb(emb_size)
             self.gatedblock = GatedBlock(emb_size)
+            self.dropout = nn.Dropout(dp_prob)
 
     def forward(self, emb_a, emb_b):
         S_a, S_b = self.bidirmatchemb(emb_a, emb_b)
-        return self.gatedblock(S_a, S_b)
+        return self.dropout(self.gatedblock(S_a, S_b))
 
 class MatchThreePairs(nn.Block):
     '''
     implement three mathes between (observation1, observation2), (observation1, hypothesis),
     and (observation2, hypothesis)
     '''
-    def __init__(self, emb_size, **kwargs):
+    def __init__(self, emb_size, dp_prob=.3, **kwargs):
         super(MatchThreePairs, self).__init__(**kwargs)
         with self.name_scope():
             # match between first ob (before) and second ob (after)
-            self.match_o1o2 = MatchOnePair(emb_size)
+            self.match_o1o2 = MatchOnePair(emb_size, dp_prob)
             # match between first ob (before) and h
-            self.match_o1h = MatchOnePair(emb_size)
+            self.match_o1h = MatchOnePair(emb_size, dp_prob)
             # match between second ob (after) and h
-            self.match_o2h = MatchOnePair(emb_size)
+            self.match_o2h = MatchOnePair(emb_size, dp_prob)
     
     def forward(self, o1, o2, h):
         # M_* is of dimension (batch_size, emb_size) respectively
@@ -168,10 +169,11 @@ class DMCN(nn.Block):
     '''
     wrapper of this whole model
     '''
-    def __init__(self, emb_size=768, num_candidates=2, **kwargs):
+    def __init__(self, emb_size=768, num_candidates=2, dp_prob=.3, **kwargs):
         super(DMCN, self).__init__(**kwargs)
         with self.name_scope():
-            self.matchthreepairs = [MatchThreePairs(emb_size) for _ in range(num_candidates)]
+            self.matchthreepairs = [MatchThreePairs(emb_size, dp_prob) \
+                                    for _ in range(num_candidates)]
             for block in self.matchthreepairs:
                 self.register_child(block)
             self.objfunc = ObjFunc(emb_size)
