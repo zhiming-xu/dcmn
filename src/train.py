@@ -93,7 +93,7 @@ def one_epoch(dataloader, model, loss_func, trainer, ctx, is_train, epoch, class
         # valid_curve.append((acc, F1))
 
 def train_valid(dataloader_train, dataloader_test, model, loss_func, trainer, \
-                ctx, num_epoch, class_weight=None, loss_name='sce'):
+                num_epoch, ctx=mx.gpu(), class_weight=None, loss_name='sce'):
     '''
     wrapper for training and "test" the model
     '''

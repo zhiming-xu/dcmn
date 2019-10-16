@@ -1,6 +1,9 @@
 # visual studio code related
 .vscode/
 
+# needed for linux
+bert/
+
 # data
 data/
 
