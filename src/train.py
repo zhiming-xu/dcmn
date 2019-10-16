@@ -73,7 +73,7 @@ def one_epoch(dataloader, model, loss_func, trainer, ctx, is_train, epoch, class
         loss_val += batch_loss
 
         # check the result of traing phase
-        if is_train and n_batch % 200 == 0:
+        if is_train and n_batch % 100 == 0:
             print('epoch %d, batch %d, batch_train_loss %.4f, batch_train_acc %.3f' %
                  (epoch, n_batch, batch_loss, accuracy_score(batch_true, batch_pred)))
 
