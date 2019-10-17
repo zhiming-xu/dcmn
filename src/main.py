@@ -1,5 +1,6 @@
 # !/usr/bin/env python3
 import preprocess, model, train
+import mxnet as mx
 from mxnet import gluon, init
 import logging, argparse
 
@@ -17,11 +18,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
-    dataloader_train = preprocess.get_dataloader(args.train_sentences, args.train_labels, sample_num=4096)
+    dataloader_train = preprocess.get_dataloader(args.train_sentences, args.train_labels, sample_num=1024)
     dataloader_test = preprocess.get_dataloader(args.test_sentences, args.test_labels)
-    dmcn = model.DMCN(dp_prob=.5)
-    dmcn.initialize(init=init.Uniform(), ctx=model.ctx)
-    loss_func = loss = gluon.loss.SoftmaxCrossEntropyLoss()
-    lr, clip = .001, 2
+    dmcn = model.DMCN(dp_prob=.3)
+    dmcn.initialize(init=init.Uniform(.03), ctx=mx.gpu())
+    loss_func = gluon.loss.SoftmaxCrossEntropyLoss()
+    lr, clip = .001, 2.5
     trainer = gluon.Trainer(dmcn.collect_params(), 'adam', {'learning_rate': lr, 'clip_gradient': clip})
-    train.train_valid(dataloader_train, dataloader_test, dmcn, loss_func, trainer, num_epoch=10)
+    train.train_valid(dataloader_train, dataloader_test, dmcn, loss_func, trainer, num_epoch=10, ctx=mx.gpu())

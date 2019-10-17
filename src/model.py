@@ -12,13 +12,6 @@ logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.Logger(__name__)
 logger.setLevel(logging.DEBUG)
 
-try:
-    nd.ones(10, ctx=mx.gpu())
-    ctx = mx.gpu()
-except Exception as e:
-    logger.warning('No GPU device found with exception {}. Will use CPU instead'.format(e))
-    ctx = mx.cpu()
-
 class AttentionWeightMatrix(nn.Block):
     '''
     implement G^qa = softmax(H^p W H^aT)
@@ -47,7 +40,6 @@ class SoftAlignment(nn.Block):
         super(SoftAlignment, self).__init__(**kwargs)
         with self.name_scope():
             # the parameter matrix W
-            # self.W = nd.normal(scale=.1, shape=(emb_size, emb_size), ctx=ctx).attach_grad()
             self.W = self.params.get(
                 'soft_align_W', shape=(emb_size, emb_size)
             )
