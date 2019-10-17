@@ -6,6 +6,7 @@ bert/
 
 # data
 data/
+!data/README
 
 # test files
 test*.py

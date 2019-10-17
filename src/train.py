@@ -7,21 +7,21 @@ import numpy as np
 
 logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.Logger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
-def calculate_loss(inputs, labels, model, loss_func, ctx, loss_name='sce', class_weight=None):
+def calculate_loss(inputs, labels, model, loss_func, loss_name='sce', class_weight=None):
     '''
     this function will calculate loss, we use softmax cross entropy for now,
     possibly extend to weighted version
     '''
     preds = model(inputs)
-    # labels = nd.array(labels.astype('int32', copy=False), ctx=ctx)
     if loss_name == 'sce':
         l = loss_func(preds, labels)
     elif loss_name == 'wsce':
         l = loss_func(preds, labels, class_weight, class_weight.shape[0])
     else:
+        logger.error('Loss function %s not implemented' % loss_name)
         raise NotImplementedError
     return preds, l
 
@@ -38,7 +38,7 @@ def one_epoch(dataloader, model, loss_func, trainer, ctx, is_train, epoch, class
 
         if is_train:
             with autograd.record():
-                batch_pred, l = calculate_loss(inputs, labels, model, loss_func, ctx, loss_name, class_weight)
+                batch_pred, l = calculate_loss(inputs, labels, model, loss_func, loss_name, class_weight)
 
             # backward calculate
             l.backward()
