@@ -2,6 +2,7 @@
 import logging, json
 from collections import defaultdict
 from ast import literal_eval
+import os, sys
 
 logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.Logger(__name__)
@@ -39,3 +40,11 @@ def load_labels(filepath):
     with open(filepath, 'r') as f:
         ret = [0 if literal_eval(line)==1 else 1 for line in f]
     return ret
+
+def _get_threads():
+    """ Returns the number of available threads on a posix/win based system """
+    if sys.platform == 'win32':
+        # return (int)(os.environ['NUMBER_OF_PROCESSORS'])
+        return 1    # save trouble, do not use multiprocessing on windows
+    else:
+        return (int)(os.popen('grep -c cores /proc/cpuinfo').read())

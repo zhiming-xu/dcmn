@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
-    dataloader_train = preprocess.get_dataloader(args.train_sentences, args.train_labels, sample_num=1024)
+    dataloader_train = preprocess.get_dataloader(args.train_sentences, args.train_labels)
     dataloader_test = preprocess.get_dataloader(args.test_sentences, args.test_labels)
     dmcn = model.DMCN(dp_prob=.3)
     dmcn.initialize(init=init.Uniform(.03), ctx=mx.gpu())
