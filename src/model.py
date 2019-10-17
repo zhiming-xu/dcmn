@@ -103,8 +103,8 @@ class GatedBlock(nn.Block):
     def forward(self, S_a, S_b):
         M_a = self.maxpooling(S_a).flatten(dim=1)
         M_b = self.maxpooling(S_b).flatten(dim=1)
-        gate_rate = nd.relu(nd.dot(M_a, self.W_a.data()) + \
-                            nd.dot(M_b, self.W_b.data()) + self.b.data())
+        gate_rate = nd.sigmoid(nd.dot(M_a, self.W_a.data()) + \
+                               nd.dot(M_b, self.W_b.data()) + self.b.data())
         gated_output = gate_rate * M_a + (1 - gate_rate) * M_b
         return gated_output
 

@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 if __name__ == '__main__':
-    dataloader_train = preprocess.get_dataloader(args.train_sentences, args.train_labels, sample_num=10000)
+    dataloader_train = preprocess.get_dataloader(args.train_sentences, args.train_labels, sample_num=4096)
     dataloader_test = preprocess.get_dataloader(args.test_sentences, args.test_labels)
-    dmcn = model.DMCN()
-    dmcn.initialize(init=init.Uniform(scale=.01), ctx=model.ctx)
+    dmcn = model.DMCN(dp_prob=.5)
+    dmcn.initialize(init=init.Uniform(), ctx=model.ctx)
     loss_func = loss = gluon.loss.SoftmaxCrossEntropyLoss()
-    lr, clip = .001, 2.5
+    lr, clip = .001, 2
     trainer = gluon.Trainer(dmcn.collect_params(), 'adam', {'learning_rate': lr, 'clip_gradient': clip})
     train.train_valid(dataloader_train, dataloader_test, dmcn, loss_func, trainer, num_epoch=10)
