@@ -18,10 +18,6 @@ def calculate_loss(inputs, labels, model, loss_func, loss_name='sce', class_weig
     preds = model(inputs)
     if loss_name == 'sce':
         l = loss_func(preds, labels)
-    elif loss_name == 'wsce':
-        logger.error('Loss function %s not implemented' % loss_name)
-        raise NotImplementedError
-        # l = loss_func(preds, labels, class_weight, class_weight.shape[0])
     else:
         logger.error('Loss function %s not implemented' % loss_name)
         raise NotImplementedError
