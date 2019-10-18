@@ -20,13 +20,15 @@ def to_dataset(sentences, labels, ctx=mx.gpu(), batch_size=64, max_seq_length=25
     '''
     bertembedding = BertEmbedding(ctx=ctx, batch_size=batch_size, max_seq_length=max_seq_length)
     print('Construct bert embedding for sentences')
-    
+
     embs = []
     for sts in sentences:
         tokens_embs = bertembedding.embedding(sts)
         embs.append([np.asarray(token_emb[1]) for token_emb in tokens_embs])
-    
-    dataset = [list(obs_hyp_label) for obs_hyp_label in zip(*embs, labels)]
+    if labels: 
+        dataset = [list(obs_hyp_label) for obs_hyp_label in zip(*embs, labels)]
+    else:
+        dataset = [list(obs_hyp_label) for obs_hyp_label in zip(*embs)]
     return dataset
 
 def get_length(dataset):
@@ -61,7 +63,7 @@ def to_dataloader(dataset, batch_size=64, num_buckets=10, bucket_ratio=.5):
     
     return dataloader
 
-def get_dataloader(sts_filepath, label_filepath, keys=['obs1', 'obs2', 'hyp1', 'hyp2'], \
+def get_dataloader(sts, labels=None, keys=['obs1', 'obs2', 'hyp1', 'hyp2'], \
                    batch_size=64, num_buckets=10, bucket_ratio=.5, \
                    ctx=mx.gpu(), max_seq_length=25, sample_num=None):
     '''
@@ -70,14 +72,25 @@ def get_dataloader(sts_filepath, label_filepath, keys=['obs1', 'obs2', 'hyp1', '
     get the dataloader for model to us. sample_num controls how many
     samples in dataset the model will use, defualt to None, e.g., use all
     '''
-    sentences = load_sentences(sts_filepath, keys=keys)
-    sentences = [sts[:sample_num] for sts in sentences]
-    labels = load_labels(label_filepath)[:sample_num]
-    assert(len(sentences)==4 and len(sentences[0])==len(labels))
+    if labels:
+        sentences = load_sentences(sts, keys=keys)
+        sentences = [sts[:sample_num] for sts in sentences]
+        labels = load_labels(labels)[:sample_num]
+        assert(len(sentences)==4 and len(sentences[0])==len(labels))
 
-    dataset = to_dataset(sentences, labels, ctx=ctx, batch_size=batch_size, \
-                         max_seq_length=max_seq_length)
+        dataset = to_dataset(sentences, labels, ctx=ctx, batch_size=batch_size, \
+                             max_seq_length=max_seq_length)
 
-    dataloader = to_dataloader(dataset=dataset, batch_size=batch_size, \
-                               num_buckets=num_buckets, bucket_ratio=bucket_ratio)
+        dataloader = to_dataloader(dataset=dataset, batch_size=batch_size, \
+                                   num_buckets=num_buckets, bucket_ratio=bucket_ratio)
+    else:
+        dataset = to_dataset(sts, labels, ctx=ctx, batch_size=batch_size, \
+                             max_seq_length=max_seq_length)
+        dataloader = []
+        for sample in dataset:
+            batch = []
+            for emb in sample:
+                batch.append(nd.array(emb.reshape(1, *emb.shape)))
+            dataloader.append(batch)
+
     return dataloader

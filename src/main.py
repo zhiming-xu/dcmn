@@ -17,13 +17,25 @@ logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+def inference(samples):
+    '''
+    do inference for a list of samples, in the form of [[obs1], [obs2], [hyp1], [hyp2], ...]
+    '''
+    pass 
+
 if __name__ == '__main__':
-    dataloader_train = preprocess.get_dataloader(args.train_sentences, args.train_labels)
-    dataloader_test = preprocess.get_dataloader(args.test_sentences, args.test_labels)
+    dataloader_train = preprocess.get_dataloader(
+        sts=args.train_sentences, labels=args.train_labels
+    )
+    dataloader_test = preprocess.get_dataloader(
+        sts=args.test_sentences, labels=args.test_labels
+    )
     dmcn = model.DMCN(dp_prob=.3)
     dmcn.initialize(init=init.Uniform(.03), ctx=mx.gpu())
     loss_func = gluon.loss.SoftmaxCrossEntropyLoss()
     lr, clip = .001, 2.5
-    trainer = gluon.Trainer(dmcn.collect_params(), 'adam', {'learning_rate': lr, 'clip_gradient': clip})
-    train.train_valid(dataloader_train, dataloader_test, dmcn, loss_func, trainer, num_epoch=20, ctx=mx.gpu())
+    trainer = gluon.Trainer(dmcn.collect_params(), 'adam',
+                            {'learning_rate': lr, 'clip_gradient': clip})
+    train.train_valid(dataloader_train, dataloader_test, dmcn, loss_func,
+                      trainer, num_epoch=20, ctx=mx.gpu())
     dmcn.save_parameters('dmcn20.params')

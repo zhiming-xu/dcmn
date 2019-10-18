@@ -14,7 +14,7 @@ logger.setLevel(logging.DEBUG)
 
 class AttentionWeightMatrix(nn.Block):
     '''
-    implement G^qa = softmax(H^p W H^aT)
+    implement G^qa = softmax(H_a W H_b.T)
     '''
     def __init__(self, emb_size, **kwargs):
         super(AttentionWeightMatrix, self).__init__(**kwargs)

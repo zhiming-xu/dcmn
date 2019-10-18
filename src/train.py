@@ -19,13 +19,16 @@ def calculate_loss(inputs, labels, model, loss_func, loss_name='sce', class_weig
     if loss_name == 'sce':
         l = loss_func(preds, labels)
     elif loss_name == 'wsce':
-        l = loss_func(preds, labels, class_weight, class_weight.shape[0])
+        logger.error('Loss function %s not implemented' % loss_name)
+        raise NotImplementedError
+        # l = loss_func(preds, labels, class_weight, class_weight.shape[0])
     else:
         logger.error('Loss function %s not implemented' % loss_name)
         raise NotImplementedError
     return preds, l
 
-def one_epoch(dataloader, model, loss_func, trainer, ctx, is_train, epoch, class_weight=None, loss_name='sce'):
+def one_epoch(dataloader, model, loss_func, trainer, ctx, is_train, epoch,
+              class_weight=None, loss_name='sce'):
     '''
     this function trains model for one epoch if `is_train` is True
     also calculates loss/metrics whether in training or dev
