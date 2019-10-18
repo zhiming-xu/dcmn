@@ -4,6 +4,9 @@
 # needed for linux
 bert/
 
+# acc histories and model params
+/results
+
 # data
 data/
 !data/README

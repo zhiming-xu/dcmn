@@ -25,4 +25,5 @@ if __name__ == '__main__':
     loss_func = gluon.loss.SoftmaxCrossEntropyLoss()
     lr, clip = .001, 2.5
     trainer = gluon.Trainer(dmcn.collect_params(), 'adam', {'learning_rate': lr, 'clip_gradient': clip})
-    train.train_valid(dataloader_train, dataloader_test, dmcn, loss_func, trainer, num_epoch=10, ctx=mx.gpu())
+    train.train_valid(dataloader_train, dataloader_test, dmcn, loss_func, trainer, num_epoch=20, ctx=mx.gpu())
+    dmcn.save_parameters('dmcn20.params')

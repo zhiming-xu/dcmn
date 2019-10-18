@@ -45,6 +45,6 @@ def _get_threads():
     """ Returns the number of available threads on a posix/win based system """
     if sys.platform == 'win32':
         # return (int)(os.environ['NUMBER_OF_PROCESSORS'])
-        return 1    # save trouble, do not use multiprocessing on windows
+        return 0    # save trouble, do not use multiprocessing on windows
     else:
         return (int)(os.popen('grep -c cores /proc/cpuinfo').read())
