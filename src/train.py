@@ -79,11 +79,23 @@ def train_valid(dataloader_train, dataloader_test, model, loss_func, trainer, \
         start = time.time()
         # train
         is_train = True
-        one_epoch(dataloader_train, model, loss_func, trainer, ctx, is_train, epoch, class_weight, loss_name)
+        one_epoch(dataloader_train, model, loss_func, trainer, ctx, is_train, \
+                  epoch, class_weight, loss_name)
 
         # valid
         is_train = False
-        one_epoch(dataloader_test, model, loss_func, trainer, ctx, is_train, epoch, class_weight, loss_name)
+        one_epoch(dataloader_test, model, loss_func, trainer, ctx, is_train, \
+                  epoch, class_weight, loss_name)
         end = time.time()
         print('time %.2f sec' % (end-start))
         print("*"*100)
+
+def inference(model, sample):
+    '''
+    do inference for one sample
+    '''
+    for i, embs in enumerate(samples):
+        pred = model(embs).argmax(axis=-1).astype('int32').asscalar()
+        # samples[pred+2]: hyp[pred], [i], hyp[pred] for i th sample
+        print('Sample:\034[32m', list(zip(*samples))[i], '\033[0m\nPred:\t\033[33m', \
+              samples[pred+2][i], '\033[0m')
