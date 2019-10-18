@@ -27,7 +27,7 @@ def inference(model, samples):
         # embs is [emb(obs1), emb(obs2), emb(hyp1), emb(hyp2), ...]
         pred = model(embs).argmax(axis=-1).astype('int32').asscalar()
         # samples[pred+2]: hyp[pred], [i], hyp[pred] for i th sample
-        print('Sample:', list(zip(*samples))[0], '\nPred:\t', samples[pred+2][i])
+        print('Sample:', list(zip(*samples))[i], '\nPred:\t', samples[pred+2][i])
 
 if __name__ == '__main__':
     dataloader_train = preprocess.get_dataloader(
