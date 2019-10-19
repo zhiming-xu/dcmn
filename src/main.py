@@ -37,8 +37,6 @@ def inference(model, samples):
             print(sentence)
         print('\033[36mPred:\033[32m')
         print(samples[pred+2][i], '\033[0m')
-        # print('\033[36mSample:\033[34m', list(zip(*samples))[i], \
-        #       '\033[36m\nPred:\t\033[32m', samples[pred+2][i], '\033[0m')
 
 if __name__ == '__main__':
     if args.inference:
@@ -51,17 +49,17 @@ if __name__ == '__main__':
     else:
         # do training
         dataloader_train = preprocess.get_dataloader(
-            sts=args.train_sentences, labels=args.train_labels, sample_num=6000
+            sts=args.train_sentences, labels=args.train_labels, sample_num=8000
         )
         dataloader_test = preprocess.get_dataloader(
             sts=args.test_sentences, labels=args.test_labels
         )
         dcmn = model.DCMN()
-        dcmn.initialize(init=init.Uniform(.03), ctx=mx.gpu())
+        dcmn.initialize(init=init.Uniform(.001), ctx=mx.gpu())
         loss_func = gluon.loss.SoftmaxCrossEntropyLoss()
-        lr, clip = .001, 2.5
+        lr, clip = 5e-4, 2.5
         trainer = gluon.Trainer(dcmn.collect_params(), 'adam',
-                                {'learning_rate': lr, 'clip_gradient': clip})
+                               {'learning_rate': lr, 'clip_gradient': clip})
         train.train_valid(dataloader_train, dataloader_test, dcmn, loss_func,
-                        trainer, num_epoch=15, ctx=mx.gpu())
-        dcmn.save_parameters('dmcn15.params')
+                          trainer, num_epoch=15, ctx=mx.gpu())
+        dcmn.save_parameters('dcmn8k.params')
