@@ -38,7 +38,8 @@ def load_labels(filepath):
     '''
     logger.info('Load labels')
     with open(filepath, 'r') as f:
-        ret = [0 if literal_eval(line)==1 else 1 for line in f]
+        # the label in original file counts from 1 instead of 0
+        ret = [literal_eval(line)-1 for line in f]
     return ret
 
 def _get_threads():
