@@ -25,18 +25,20 @@ logger.setLevel(logging.WARNING)
 
 def inference(model, samples):
     '''
-    do inference for a list of samples, in the form of [[obs1's], [obs2's], [hyp1's], [hyp2's], ...]
+    do inference for a list of samples, in the form of [[obs1, obs2, hyp1, hyp2], [...], ...]
     '''
     dataloader = preprocess.get_dataloader(samples)
     for i, embs in enumerate(dataloader):
         # embs is [emb(obs1), emb(obs2), emb(hyp1), emb(hyp2), ...]
         pred = model(embs).argmax(axis=-1).astype('int32').asscalar()
         # samples[pred+2]: hyp[pred], [i], hyp[pred] for i th sample
-        print('\033[36mSamples:\033[34m')
-        for sentence in list(zip(*samples))[i]:
-            print(sentence)
-        print('\033[36mPred:\033[32m')
-        print(samples[pred+2][i], '\033[0m')
+        print('Sample:\033[34m')
+        print('Obervation 1:', samples[i][0])
+        print('Observation 2:', samples[i][1])
+        print('Hypothesis 1:', samples[i][2])
+        print('Hypothesis 2:', samples[i][3])
+        print('\033[0mPred:\033[36m')
+        print(samples[i][0], '\033[32m\n'+samples[i][pred+2], '\033[36m\n'+samples[i][1], '\033[0m')
 
 if __name__ == '__main__':
     if args.inference:
@@ -44,7 +46,7 @@ if __name__ == '__main__':
         dcmn = model.DCMN()
         dcmn.load_parameters(args.model_params)
         sts = args.sample.split('|')
-        samples = [[sentence.strip()] for sentence in sts]
+        samples = [sentence.strip() for sentence in sts]
         inference(dcmn, samples)
     else:
         # do training

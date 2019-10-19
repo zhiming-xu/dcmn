@@ -28,7 +28,7 @@ def to_dataset(sentences, labels, ctx=mx.gpu(), batch_size=64, max_seq_length=25
     if labels: 
         dataset = [list(obs_hyp_label) for obs_hyp_label in zip(*embs, labels)]
     else:
-        dataset = [list(obs_hyp_label) for obs_hyp_label in zip(*embs)]
+        dataset = embs
     return dataset
 
 def get_length(dataset):
