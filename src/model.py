@@ -157,12 +157,12 @@ class ObjFunc(nn.Block):
         L = -nd.log(exp_C / nd.sum(exp_C, axis=-1, keepdims=True))
         return L
 
-class DMCN(nn.Block):
+class DCMN(nn.Block):
     '''
     wrapper of this whole model
     '''
     def __init__(self, emb_size=768, num_candidates=2, dp_prob=.3, **kwargs):
-        super(DMCN, self).__init__(**kwargs)
+        super(DCMN, self).__init__(**kwargs)
         with self.name_scope():
             self.matchthreepairs = [MatchThreePairs(emb_size, dp_prob) \
                                     for _ in range(num_candidates)]

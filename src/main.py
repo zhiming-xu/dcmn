@@ -43,11 +43,11 @@ def inference(model, samples):
 if __name__ == '__main__':
     if args.inference:
         # do inference
-        dmcn = model.DMCN()
-        dmcn.load_parameters(args.model_params)
+        dcmn = model.DCMN()
+        dcmn.load_parameters(args.model_params)
         sts = args.sample.split('|')
         samples = [[sentence.strip()] for sentence in sts]
-        inference(dmcn, samples)
+        inference(dcmn, samples)
     else:
         # do training
         dataloader_train = preprocess.get_dataloader(
@@ -56,12 +56,12 @@ if __name__ == '__main__':
         dataloader_test = preprocess.get_dataloader(
             sts=args.test_sentences, labels=args.test_labels
         )
-        dmcn = model.DMCN()
-        dmcn.initialize(init=init.Uniform(.03), ctx=mx.gpu())
+        dcmn = model.DCMN()
+        dcmn.initialize(init=init.Uniform(.03), ctx=mx.gpu())
         loss_func = gluon.loss.SoftmaxCrossEntropyLoss()
         lr, clip = .001, 2.5
-        trainer = gluon.Trainer(dmcn.collect_params(), 'adam',
+        trainer = gluon.Trainer(dcmn.collect_params(), 'adam',
                                 {'learning_rate': lr, 'clip_gradient': clip})
-        train.train_valid(dataloader_train, dataloader_test, dmcn, loss_func,
+        train.train_valid(dataloader_train, dataloader_test, dcmn, loss_func,
                         trainer, num_epoch=15, ctx=mx.gpu())
-        dmcn.save_parameters('dmcn15.params')
+        dcmn.save_parameters('dmcn15.params')
