@@ -51,7 +51,7 @@ if __name__ == '__main__':
     else:
         # do training
         dataloader_train = preprocess.get_dataloader(
-            sts=args.train_sentences, labels=args.train_labels, sample_num=1000
+            sts=args.train_sentences, labels=args.train_labels#, sample_num=1000
         )
         dataloader_test = preprocess.get_dataloader(
             sts=args.test_sentences, labels=args.test_labels
