@@ -13,20 +13,20 @@ logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.Logger(__name__)
 logger.setLevel(logging.WARNING)
 
-def to_dataset(sentences, labels, ctx=mx.gpu(), batch_size=64, max_seq_length=25):
+def to_dataset(samples, labels, ctx=mx.gpu(), batch_size=64, max_seq_length=25):
     '''
     this function will use BertEmbedding to get each fields' embeddings
     and load the given labels, put them together into a dataset
     '''
     bertembedding = BertEmbedding(ctx=ctx, batch_size=batch_size, max_seq_length=max_seq_length)
-    print('Construct bert embedding for sentences')
+    logger.info('Construct bert embedding for sentences')
 
     embs = []
-    for sts in sentences:
-        tokens_embs = bertembedding.embedding(sts)
+    for sample in samples:
+        tokens_embs = bertembedding.embedding(sample)
         embs.append([np.asarray(token_emb[1]) for token_emb in tokens_embs])
     if labels: 
-        dataset = [list(obs_hyp_label) for obs_hyp_label in zip(*embs, labels)]
+        dataset = [[*obs_hyp, label] for obs_hyp, label in zip(embs, labels)]
     else:
         dataset = embs
     return dataset
@@ -74,9 +74,14 @@ def get_dataloader(sts, labels=None, keys=['obs1', 'obs2', 'hyp1', 'hyp2'], \
     '''
     if labels:
         sentences = load_sentences(sts, keys=keys)
-        sentences = [sts[:sample_num] for sts in sentences]
+        sentences = sentences[:sample_num]
         labels = load_labels(labels)[:sample_num]
-        assert(len(sentences)==4 and len(sentences[0])==len(labels))
+        
+        try:
+            assert(len(sentences)==len(labels))
+        except:
+            logger.error('Sample sentence length does not equal to label\'s length!')
+            exit(-1)
 
         dataset = to_dataset(sentences, labels, ctx=ctx, batch_size=batch_size, \
                              max_seq_length=max_seq_length)

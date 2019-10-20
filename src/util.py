@@ -22,15 +22,17 @@ def load_jsonl(filepath):
 def load_sentences(filepath, keys=['obs1', 'obs2', 'hyp1', 'hyp2']):
     '''
     this function will use load_jsonl to load the jsonl file, extract
-    the observations and hypotheses, return: key -> list of strings
+    the observations and hypotheses, return list of strings
     '''
     raw_data = load_jsonl(filepath)
-    ret = defaultdict(list)
+    samples = defaultdict(list)
     logger.info('Build the dictionary for each kind of sentences')
     for entry in raw_data:
         for key in keys:
-            ret[key].append(entry[key])
-    return list(ret.values())
+            samples[key].append(entry[key])
+    samples_list = list(samples.values())
+    ret = [sample for sample in zip(*samples_list)]
+    return ret
 
 def load_labels(filepath):
     '''
