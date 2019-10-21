@@ -6,6 +6,7 @@ bert/
 
 # acc histories and model params
 /results
+*.params
 
 # data
 data/
