@@ -31,7 +31,7 @@ class AttentionWeightMatrix(nn.Block):
                                    nd.transpose(emb_b, axes=(0, 2, 1)))
         # this softmax is subject to servere numerical unstability,
         # add a work around
-        G_ab = nd.softmax(dot_product-nd.max(dot_product, axis=1), axis=1)
+        G_ab = nd.softmax(dot_product-nd.max(dot_product, axis=1, keepdims=True), axis=1)
         return G_ab
 
 class SoftAlignment(nn.Block):
