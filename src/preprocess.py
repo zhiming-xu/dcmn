@@ -57,8 +57,8 @@ def to_dataloader(dataset, batch_size=64, num_buckets=10, bucket_ratio=.5):
     print(batch_sampler.stats())
 
     dataloader = gluon.data.DataLoader(
-        dataset, batch_sampler=batch_sampler, batchify_fn=batchify_fn,
-        num_workers=_get_threads()
+        dataset, batch_sampler=batch_sampler, batchify_fn=batchify_fn#,
+        #num_workers=_get_threads()
     )
     
     return dataloader

@@ -46,7 +46,7 @@ if __name__ == '__main__':
         dcmn = model.DCMN()
         dcmn.load_parameters(args.model_params)
         sts = args.sample.split('|')
-        samples = [sentence.strip() for sentence in sts]
+        samples = [[sentence.strip() for sentence in sts]]
         inference(dcmn, samples)
     else:
         # do training
