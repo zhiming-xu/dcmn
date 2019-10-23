@@ -30,7 +30,8 @@ def inference(model, samples):
     dataloader = preprocess.get_dataloader(samples)
     for i, embs in enumerate(dataloader):
         # embs is [emb(obs1), emb(obs2), emb(hyp1), emb(hyp2), ...]
-        pred = model(embs).argmax(axis=-1).astype('int32').asscalar()
+        output = model(embs)
+        pred = output.argmax(axis=-1).astype('int32').asscalar()
         # samples[pred+2]: hyp[pred], [i], hyp[pred] for i th sample
         print('Sample:\033[34m')
         print('Obervation 1:', samples[i][0])
@@ -38,7 +39,8 @@ def inference(model, samples):
         print('Hypothesis 1:', samples[i][2])
         print('Hypothesis 2:', samples[i][3])
         print('\033[0mPred:\033[36m')
-        print(samples[i][0], '\033[32m\n'+samples[i][pred+2], '\033[36m\n'+samples[i][1], '\033[0m')
+        print(samples[i][0], '\033[32m\n'+samples[i][pred+2], output[0].asnumpy(), \
+              '\033[36m\n'+samples[i][1], '\033[0m')
 
 if __name__ == '__main__':
     if args.inference:
@@ -51,7 +53,7 @@ if __name__ == '__main__':
     else:
         # do training
         dataloader_train = preprocess.get_dataloader(
-            sts=args.train_sentences, labels=args.train_labels, sample_num=8000
+            sts=args.train_sentences, labels=args.train_labels
         )
         dataloader_test = preprocess.get_dataloader(
             sts=args.test_sentences, labels=args.test_labels
